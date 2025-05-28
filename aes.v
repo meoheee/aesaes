@@ -67,7 +67,7 @@ module aes(
   reg [31 : 0] block_reg [0 : 3];
   reg          block_we;
 
-  reg [31 : 0] key_reg [0 : 7];
+  reg [31 : 0] key_reg [0 : 3];
   reg          key_we;
 
   reg [127 : 0] result_reg;
