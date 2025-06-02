@@ -1,42 +1,3 @@
-//======================================================================
-//
-// aes_core.v
-// ----------
-// The AES core. This core supports key size of 128, and 256 bits.
-// Most of the functionality is within the submodules.
-//
-//
-// Author: Joachim Strombergson
-// Copyright (c) 2013, 2014, Secworks Sweden AB
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or
-// without modification, are permitted provided that the following
-// conditions are met:
-//
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in
-//    the documentation and/or other materials provided with the
-//    distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-//======================================================================
-
 `default_nettype none
 
 module aes_core(
@@ -48,13 +9,18 @@ module aes_core(
                 input wire            next,
                 output wire           ready,
 
-                input wire [255 : 0]  key,
-                input wire            keylen,
+                input wire [127 : 0]  key,
+                //input wire            keylen,
 
                 input wire [127 : 0]  block,
                 output wire [127 : 0] result,
-                output wire           result_valid
-               );
+                output wire           result_valid,
+                
+                output wire  [7:0]  rom_addr,        
+                input  wire [7:0]  rom_data,        
+                output wire         rom_ce_n,        
+                output wire        rom_oe_n         
+               ); 
 
 
 
@@ -123,7 +89,7 @@ module aes_core(
 
                                .next(enc_next),
 
-                               .keylen(keylen),
+                              // .keylen(keylen),
                                .round(enc_round_nr),
                                .round_key(round_key),
 
@@ -142,13 +108,14 @@ module aes_core(
 
                                .next(dec_next),
 
-                               .keylen(keylen),
+                               //.keylen(keylen),
                                .round(dec_round_nr),
                                .round_key(round_key),
 
                                .block(block),
                                .new_block(dec_new_block),
-                               .ready(dec_ready)
+                               .ready(dec_ready),
+                               .rom_addr(rom_addr), .rom_data(rom_data), .rom_ce_n(rom_ce_n), .rom_oe_n(rom_oe_n)
                               );
 
 
@@ -157,7 +124,7 @@ module aes_core(
                      .reset_n(reset_n),
 
                      .key(key),
-                     .keylen(keylen),
+                     //.keylen(keylen),
                      .init(init),
 
                      .round(muxed_round_nr),
@@ -169,7 +136,7 @@ module aes_core(
                     );
 
 
-  aes_sbox sbox_inst(.sboxw(muxed_sboxw), .new_sboxw(new_sboxw));
+  aes_sbox sbox_inst(.clk(clk), .rst_n(reset_n), .sboxw(muxed_sboxw), .new_sboxw(new_sboxw), .rom_addr(rom_addr), .rom_data(rom_data), .rom_ce_n(rom_ce_n), .rom_oe_n(rom_oe_n));
 
 
   //----------------------------------------------------------------

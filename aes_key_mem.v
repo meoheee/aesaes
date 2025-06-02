@@ -1,49 +1,11 @@
-//======================================================================
-//
-// aes_key_mem.v
-// -------------
-// The AES key memory including round key generator.
-//
-//
-// Author: Joachim Strombergson
-// Copyright (c) 2013 Secworks Sweden AB
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or
-// without modification, are permitted provided that the following
-// conditions are met:
-//
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in
-//    the documentation and/or other materials provided with the
-//    distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-//======================================================================
-
 `default_nettype none
 
 module aes_key_mem(
                    input wire            clk,
                    input wire            reset_n,
 
-                   input wire [255 : 0]  key,
-                   input wire            keylen,
+                   input wire [127 : 0]  key,
+                   //input wire            keylen,
                    input wire            init,
 
                    input wire    [3 : 0] round,
@@ -233,13 +195,10 @@ module aes_key_mem(
         begin
           rcon_set   = 1'b0;
           key_mem_we = 1'b1;
-          case (keylen)
-            AES_128_BIT_KEY:
-              begin
                 if (round_ctr_reg == 0)
                   begin
-                    key_mem_new   = key[255 : 128];
-                    prev_key1_new = key[255 : 128];
+                    key_mem_new   = key[127 : 0]; //255:128
+                    prev_key1_new = key[127 : 0]; //255:128
                     prev_key1_we  = 1'b1;
                     rcon_next     = 1'b1;
                   end
@@ -255,54 +214,6 @@ module aes_key_mem(
                     prev_key1_we  = 1'b1;
                     rcon_next     = 1'b1;
                   end
-              end
-
-            AES_256_BIT_KEY:
-              begin
-                if (round_ctr_reg == 0)
-                  begin
-                    key_mem_new   = key[255 : 128];
-                    prev_key0_new = key[255 : 128];
-                    prev_key0_we  = 1'b1;
-                  end
-                else if (round_ctr_reg == 1)
-                  begin
-                    key_mem_new   = key[127 : 0];
-                    prev_key1_new = key[127 : 0];
-                    prev_key1_we  = 1'b1;
-                    rcon_next     = 1'b1;
-                  end
-                else
-                  begin
-                    if (round_ctr_reg[0] == 0)
-                      begin
-                        k0 = w0 ^ trw;
-                        k1 = w1 ^ w0 ^ trw;
-                        k2 = w2 ^ w1 ^ w0 ^ trw;
-                        k3 = w3 ^ w2 ^ w1 ^ w0 ^ trw;
-                      end
-                    else
-                      begin
-                        k0 = w0 ^ tw;
-                        k1 = w1 ^ w0 ^ tw;
-                        k2 = w2 ^ w1 ^ w0 ^ tw;
-                        k3 = w3 ^ w2 ^ w1 ^ w0 ^ tw;
-                        rcon_next = 1'b1;
-                      end
-
-                    // Store the generated round keys.
-                    key_mem_new   = {k0, k1, k2, k3};
-                    prev_key1_new = {k0, k1, k2, k3};
-                    prev_key1_we  = 1'b1;
-                    prev_key0_new = prev_key1_reg;
-                    prev_key0_we  = 1'b1;
-                  end
-              end
-
-            default:
-              begin
-              end
-          endcase // case (keylen)
         end
     end // round_key_gen
 
@@ -378,10 +289,7 @@ module aes_key_mem(
       key_mem_ctrl_new = CTRL_IDLE;
       key_mem_ctrl_we  = 1'b0;
 
-      if (keylen == AES_128_BIT_KEY)
         num_rounds = AES_128_NUM_ROUNDS;
-      else
-        num_rounds = AES_256_NUM_ROUNDS;
 
       case(key_mem_ctrl_reg)
         CTRL_IDLE:
@@ -428,7 +336,3 @@ module aes_key_mem(
 
     end // key_mem_ctrl
 endmodule // aes_key_mem
-
-//======================================================================
-// EOF aes_key_mem.v
-//======================================================================

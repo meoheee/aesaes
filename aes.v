@@ -1,40 +1,4 @@
-//======================================================================
-//
-// aes.v
-// --------
-// Top level wrapper for the AES block cipher core.
-//
-//
-// Author: Joachim Strombergson
-// Copyright (c) 2013, 2014 Secworks Sweden AB
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or
-// without modification, are permitted provided that the following
-// conditions are met:
-//
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in
-//    the documentation and/or other materials provided with the
-//    distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-//======================================================================
+
 
 `default_nettype none
 
@@ -50,7 +14,12 @@ module aes(
            // Data ports.
            input wire  [7 : 0]  address,
            input wire  [31 : 0] write_data,
-           output wire [31 : 0] read_data
+           output wire [31 : 0] read_data,
+ 
+                 output wire  [7:0]  rom_addr,        
+                input  wire [7:0]  rom_data,        
+                output wire       rom_ce_n,        
+                output wire        rom_oe_n         
           );
 
   //----------------------------------------------------------------
@@ -73,6 +42,7 @@ module aes(
   localparam CTRL_KEYLEN_BIT  = 1;
 
   localparam ADDR_KEY0        = 8'h10;
+  localparam ADDR_KEY3        = 8'h13;
   localparam ADDR_KEY7        = 8'h17;
 
   localparam ADDR_BLOCK0      = 8'h20;
@@ -102,7 +72,7 @@ module aes(
   reg [31 : 0] block_reg [0 : 3];
   reg          block_we;
 
-  reg [31 : 0] key_reg [0 : 7];
+  reg [31 : 0] key_reg [0 : 3];
   reg          key_we;
 
   reg [127 : 0] result_reg;
@@ -119,8 +89,8 @@ module aes(
   wire           core_init;
   wire           core_next;
   wire           core_ready;
-  wire [255 : 0] core_key;
-  wire           core_keylen;
+  wire [127 : 0] core_key;
+  //wire           core_keylen;
   wire [127 : 0] core_block;
   wire [127 : 0] core_result;
   wire           core_valid;
@@ -131,15 +101,14 @@ module aes(
   //----------------------------------------------------------------
   assign read_data = tmp_read_data;
 
-  assign core_key = {key_reg[0], key_reg[1], key_reg[2], key_reg[3],
-                     key_reg[4], key_reg[5], key_reg[6], key_reg[7]};
+  assign core_key = {key_reg[0], key_reg[1], key_reg[2], key_reg[3]};
+                     //key_reg[4], key_reg[5], key_reg[6], key_reg[7]};
 
-  assign core_block  = {block_reg[0], block_reg[1],
-                        block_reg[2], block_reg[3]};
+  assign core_block  = {block_reg[0], block_reg[1], block_reg[2], block_reg[3]};
   assign core_init   = init_reg;
   assign core_next   = next_reg;
   assign core_encdec = encdec_reg;
-  assign core_keylen = keylen_reg;
+  //assign core_keylen = keylen_reg;
 
 
   //----------------------------------------------------------------
@@ -155,7 +124,7 @@ module aes(
                 .ready(core_ready),
 
                 .key(core_key),
-                .keylen(core_keylen),
+                //.keylen(core_keylen),
 
                 .block(core_block),
                 .result(core_result),
@@ -178,13 +147,13 @@ module aes(
           for (i = 0 ; i < 4 ; i = i + 1)
             block_reg[i] <= 32'h0;
 
-          for (i = 0 ; i < 8 ; i = i + 1)
+          for (i = 0 ; i < 4 ; i = i + 1)
             key_reg[i] <= 32'h0;
 
           init_reg   <= 1'b0;
           next_reg   <= 1'b0;
           encdec_reg <= 1'b0;
-          keylen_reg <= 1'b0;
+          //keylen_reg <= 1'b0;
 
           result_reg <= 128'h0;
           valid_reg  <= 1'b0;
@@ -201,11 +170,11 @@ module aes(
           if (config_we)
             begin
               encdec_reg <= write_data[CTRL_ENCDEC_BIT];
-              keylen_reg <= write_data[CTRL_KEYLEN_BIT];
+              //keylen_reg <= write_data[CTRL_KEYLEN_BIT];
             end
 
           if (key_we)
-            key_reg[address[2 : 0]] <= write_data;
+            key_reg[address[1 : 0]] <= write_data;  //// key_reg[address[2:0]] (original)
 
           if (block_we)
             block_reg[address[1 : 0]] <= write_data;
@@ -240,7 +209,7 @@ module aes(
               if (address == ADDR_CONFIG)
                 config_we = 1'b1;
 
-              if ((address >= ADDR_KEY0) && (address <= ADDR_KEY7))
+              if ((address >= ADDR_KEY0) && (address <= ADDR_KEY3))
                 key_we = 1'b1;
 
               if ((address >= ADDR_BLOCK0) && (address <= ADDR_BLOCK3))
@@ -253,7 +222,7 @@ module aes(
                 ADDR_NAME0:   tmp_read_data = CORE_NAME0;
                 ADDR_NAME1:   tmp_read_data = CORE_NAME1;
                 ADDR_VERSION: tmp_read_data = CORE_VERSION;
-                ADDR_CTRL:    tmp_read_data = {28'h0, keylen_reg, encdec_reg, next_reg, init_reg};
+                ADDR_CTRL:    tmp_read_data = {28'h0, 0, encdec_reg, next_reg, init_reg};
                 ADDR_STATUS:  tmp_read_data = {30'h0, valid_reg, ready_reg};
 
                 default:
