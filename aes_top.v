@@ -20,14 +20,14 @@ module aes_uart_top #(
    output wire [7:0]  rom_addr,
    input  wire [7:0]  rom_data,
    output wire        rom_ce_n,
-   output wire        rom_oe_n,
+   output wire        rom_oe_n
 
   );
 
-   wire [127:0] key_dbg,  
- wire [127:0] data_dbg, 
- wire [127:0] ct_dbg,   
- wire [3:0]   st        
+ //wire [127:0] key_dbg,  
+ //wire [127:0] data_dbg, 
+ //wire [127:0] ct_dbg,   
+ wire [3:0]   st;        
   
   
   
@@ -74,9 +74,9 @@ module aes_uart_top #(
   // 버퍼 & 디버그용 레지스터
   //------------------------------------------------------------------
   reg [127:0] key_buf, data_buf, ct_buf;
-  assign key_dbg  = key_buf;
-  assign data_dbg = data_buf;
-  assign ct_dbg   = ct_buf;
+  //assign key_dbg  = key_buf;
+  //assign data_dbg = data_buf;
+  //assign ct_dbg   = ct_buf;
 
   //------------------------------------------------------------------
   // FSM 정의 (기존 그대로)
