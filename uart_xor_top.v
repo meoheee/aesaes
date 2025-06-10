@@ -36,7 +36,7 @@ module uart_xor_top (
         .BAUD_RATE(BAUD_RATE)
     ) u_uart_rx (
         .i_clk        (i_clk),
-        .i_rst_n      (i_rst_n),
+        .i_rst_n      (~i_rst_n),
         .i_rxd        (i_uart_rxd),
         .o_rx_done    (rx_done_tick),
         .o_rx_data    (rx_data)
@@ -47,7 +47,7 @@ module uart_xor_top (
         .BAUD_RATE(BAUD_RATE)
     ) u_uart_tx (
         .i_clk        (i_clk),
-        .i_rst_n      (i_rst_n),
+        .i_rst_n      (~i_rst_n),
         .i_tx_start   (tx_start),
         .i_tx_data    (tx_data),
         .o_txd        (o_uart_txd),
@@ -55,7 +55,7 @@ module uart_xor_top (
     );
 
     always @(posedge i_clk or negedge i_rst_n) begin
-        if (!i_rst_n) begin
+        if (i_rst_n) begin
             tx_start  <= 1'b0;
             tx_data   <= 8'b0;
             state     <= S_OP_MODE;
